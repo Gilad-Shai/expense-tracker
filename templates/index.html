@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Expense Logger</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Daily Expense Logger</h1>
+            <p class="subtitle">Track your spending, one entry at a time</p>
+        </header>
+
+        <div class="monthly-total-card">
+            <div class="total-label">{{ current_month }} Total</div>
+            <div class="total-amount">${{ "%.2f"|format(monthly_total) }}</div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="main-content">
+            <div class="form-section">
+                <h2>Add New Expense</h2>
+                <form action="/add" method="POST" class="expense-form">
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category" name="category" required>
+                            <option value="" disabled selected>Select a category</option>
+                            <option value="Food & Dining">🍔 Food &amp; Dining</option>
+                            <option value="Transportation">🚗 Transportation</option>
+                            <option value="Shopping">🛍️ Shopping</option>
+                            <option value="Entertainment">🎬 Entertainment</option>
+                            <option value="Health & Fitness">💪 Health &amp; Fitness</option>
+                            <option value="Bills & Utilities">💡 Bills &amp; Utilities</option>
+                            <option value="Travel">✈️ Travel</option>
+                            <option value="Education">📚 Education</option>
+                            <option value="Personal Care">🧴 Personal Care</option>
+                            <option value="Other">📦 Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="amount">Amount ($)</label>
+                        <input
+                            type="number"
+                            id="amount"
+                            name="amount"
+                            step="0.01"
+                            min="0.01"
+                            placeholder="0.00"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="note">Note <span class="optional">(optional)</span></label>
+                        <input
+                            type="text"
+                            id="note"
+                            name="note"
+                            placeholder="What was this expense for?"
+                            maxlength="255"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input
+                            type="date"
+                            id="date"
+                            name="date"
+                            value="{{ today }}"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </form>
+            </div>
+
+            <div class="expenses-section">
+                <div class="expenses-header">
+                    <h2>Recent Expenses</h2>
+                    {% if expenses %}
+                        <span class="expense-count">{{ expenses|length }} entries</span>
+                    {% endif %}
+                </div>
+
+                {% if expenses %}
+                    <div class="expenses-list">
+                        {% for expense in expenses %}
+                            <div class="expense-item">
+                                <div class="expense-main">
+                                    <div class="expense-info">
+                                        <span class="expense-category">{{ expense.category }}</span>
+                                        {% if expense.note %}
+                                            <span class="expense-note">{{ expense.note }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="expense-right">
+                                        <span class="expense-amount">${{ "%.2f"|format(expense.amount) }}</span>
+                                        <span class="expense-date">{{ expense.date.strftime('%b %d, %Y') }}</span>
+                                    </div>
+                                </div>
+                                <form action="/delete/{{ expense.id }}" method="POST" class="delete-form" onsubmit="return confirm('Delete this expense?')">
+                                    <button type="submit" class="btn-delete" title="Delete expense">✕</button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <p>No expenses logged yet.</p>
+                        <p class="empty-sub">Add your first expense using the form!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if category_totals %}
+        <div class="category-breakdown">
+            <h2>This Month by Category</h2>
+            <div class="category-grid">
+                {% for cat, total in category_totals %}
+                    <div class="category-card">
+                        <div class="category-name">{{ cat }}</div>
+                        <div class="category-total">${{ "%.2f"|format(total) }}</div>
+                        <div class="category-bar-container">
+                            <div class="category-bar" style="width: {{ (total / monthly_total * 100)|round(1) }}%"></div>
+                        </div>
+                        <div class="category-percent">{{ (total / monthly_total * 100)|round(1) }}%</div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <footer>
+            <p>Daily Expense Logger &mdash; Keeping your finances in check</p>
+        </footer>
+    </div>
+
+    <script>
+        // Auto-dismiss flash messages after 4 seconds
+        setTimeout(() => {
+            const flashes = document.querySelectorAll('.flash');
+            flashes.forEach(flash => {
+                flash.style.transition = 'opacity 0.5s ease';
+                flash.style.opacity = '0';
+                setTimeout(() => flash.remove(), 500);
+            });
+        }, 4000);
+    </script>
+</body>
+</html>
